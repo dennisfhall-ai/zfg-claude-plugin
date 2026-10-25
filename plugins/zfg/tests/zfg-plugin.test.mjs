@@ -267,6 +267,7 @@ test("plugin ships under the ZFG Community License, not MIT, and keeps the v0.1.
   assert.doesNotMatch(license.slice(0, 80), /MIT/);
   assert.match(license, /version 0\.1\.0 under the MIT License keeps the rights/i);
   assert.match(license, /not retroactive/i);
+  assert.match(license, /governed by the laws of the Province of Nova Scotia/);
   const market = JSON.parse(fs.readFileSync(path.join(root, "..", "..", ".claude-plugin", "marketplace.json"), "utf8"));
   assert.equal(market.plugins.find((p) => p.name === "zfg").version, manifest.version);
 });
