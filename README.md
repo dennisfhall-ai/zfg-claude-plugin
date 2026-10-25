@@ -64,4 +64,8 @@ ZFG reads files in your repository to fingerprint them and stores receipts in `.
 
 ## License
 
-MIT. The Zero False Green name and logo are trademarks of DFH Software and Development Company and are not covered by the MIT license.
+Free to use under the **ZFG Community License 1.0** (see `LICENSE`): install and run ZFG on your own machines and CI, for personal or commercial work, at no cost. Redistribution, modified versions, competing products and hosted resale are not permitted without written permission from DFH Software and Development Company.
+
+Version 0.1.0 was released under the MIT License; copies of 0.1.0 received under MIT keep those rights. Version 0.2.0 and later are covered by the ZFG Community License.
+
+Signed receipts, public verification, merge gates and team features are paid ZFG services (https://zerofalsegreen.com). "Zero False Green", "ZFG" and the ZFG logo are trademarks of DFH Software and Development Company.

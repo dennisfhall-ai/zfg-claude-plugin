@@ -1,21 +1,98 @@
-MIT License
+ZERO FALSE GREEN COMMUNITY LICENSE
+Version 1.0 — 25 October 2026
 
-Copyright (c) 2026 DFH Software and Development Company
+Copyright (c) 2026 DFH Software and Development Company. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This license covers the Zero False Green ("ZFG") plugin for Claude, version
+0.2.0 and later, including its scripts, skills, hooks, manifests, documentation
+and images (the "Software"). By installing or using the Software you accept
+these terms. If you do not accept them, do not install or use the Software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. WHAT YOU MAY DO
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   Free of charge, for as long as you comply with this license, you may:
+
+   (a) install and run the Software on any number of your own machines and in
+       your own continuous-integration systems;
+   (b) use it for personal, educational and commercial software development,
+       including work you do for your employer or your clients; and
+   (c) keep the evidence receipts, reports and other output it produces. That
+       output belongs to you.
+
+2. WHAT YOU MAY NOT DO
+
+   Unless DFH Software and Development Company ("DFH") agrees in writing, you
+   may not:
+
+   (a) copy, redistribute, publish, sell, rent, lease, sublicense or otherwise
+       make the Software or any part of it available to anyone else, except by
+       pointing them to DFH's official distribution channel;
+   (b) modify the Software, or create, distribute or offer works derived from
+       it, other than local configuration such as a .zfg.json file;
+   (c) use the Software, or knowledge of its design gained from it, to build,
+       train or offer a product or service that competes with ZFG;
+   (d) offer the Software, or functionality substantially similar to it, to
+       third parties as a hosted or managed service;
+   (e) remove, change or hide any copyright, license or trademark notice; or
+   (f) attempt to bypass, disable or interfere with authentication, usage
+       limits, licence checks or security controls of the Software or of any
+       DFH service it connects to, or reverse engineer those services.
+
+3. PAID SERVICES
+
+   Signed receipts, public verification, merge gates, team features and other
+   hosted ZFG services are provided only under a separate paid subscription or
+   enterprise agreement with DFH. This license grants no right to those
+   services.
+
+4. OWNERSHIP AND TRADEMARKS
+
+   DFH owns the Software and all intellectual property in it. The Software is
+   licensed, not sold. "Zero False Green", "ZFG" and the ZFG logo are
+   trademarks of DFH and may not be used without DFH's written permission,
+   except to refer truthfully to the Software.
+
+5. EARLIER MIT-LICENSED VERSION
+
+   Version 0.1.0 of the Software was released under the MIT License. Anyone
+   who received a copy of version 0.1.0 under the MIT License keeps the rights
+   that license gave them for that copy. This license is not retroactive. It
+   applies to version 0.2.0 and every later version, and to every change made
+   after version 0.1.0.
+
+6. THIRD-PARTY COMPONENTS
+
+   Any third-party component included with the Software remains under its own
+   license, and nothing in this license limits your rights under it.
+
+7. FEEDBACK
+
+   If you send DFH suggestions or feedback, DFH may use them without
+   obligation to you.
+
+8. TERMINATION
+
+   Your rights under this license end automatically if you breach it. When
+   they end, you must stop using the Software and delete your copies. Sections
+   2, 4, 9 and 10 survive termination. Output you created before termination
+   remains yours.
+
+9. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE AND NON-INFRINGEMENT. A ZFG receipt records that the
+   checks you configured passed on your machine. It is not a certification,
+   security audit or authorization to release software, and it says nothing
+   about anything your checks do not test.
+
+10. LIMITATION OF LIABILITY
+
+   TO THE FULLEST EXTENT PERMITTED BY LAW, DFH WILL NOT BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+11. CONTACT
+
+   For permissions, commercial licensing or enterprise terms, contact
+   sales@zerofalsegreen.com or visit https://zerofalsegreen.com.
