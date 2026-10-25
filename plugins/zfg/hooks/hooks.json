@@ -1,0 +1,16 @@
+{
+  "description": "Zero False Green: block unproven 'passing / verified / ready' claims at the end of a turn.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/zfg-stop-hook.mjs\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
