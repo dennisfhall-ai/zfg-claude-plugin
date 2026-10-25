@@ -256,3 +256,18 @@ test("scripts work when installed in a folder whose path contains spaces", () =>
   });
   assert.equal(JSON.parse(h.stdout).decision, "block");
 });
+
+test("plugin ships under the ZFG Community License, not MIT, and keeps the v0.1.0 MIT carve-out", () => {
+  const root = path.join(here, "..");
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, ".claude-plugin", "plugin.json"), "utf8"));
+  const license = fs.readFileSync(path.join(root, "LICENSE"), "utf8");
+  assert.equal(manifest.license, "LicenseRef-ZFG-Community-1.0");
+  assert.doesNotMatch(manifest.license, /MIT/i);
+  assert.match(license, /^ZERO FALSE GREEN COMMUNITY LICENSE/);
+  assert.doesNotMatch(license.slice(0, 80), /MIT/);
+  assert.match(license, /version 0\.1\.0 under the MIT License keeps the rights/i);
+  assert.match(license, /not retroactive/i);
+  assert.match(license, /governed by the laws of the Province of Nova Scotia/);
+  const market = JSON.parse(fs.readFileSync(path.join(root, "..", "..", ".claude-plugin", "marketplace.json"), "utf8"));
+  assert.equal(market.plugins.find((p) => p.name === "zfg").version, manifest.version);
+});
