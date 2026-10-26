@@ -11,7 +11,7 @@
       "name": "zfg",
       "source": "./plugins/zfg",
       "description": "Zero False Green: no 'passing / verified / ready' claim without fresh evidence for the exact code on disk.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "license": "LicenseRef-ZFG-Community-1.0"
     }
   ]

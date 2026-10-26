@@ -257,6 +257,108 @@ test("scripts work when installed in a folder whose path contains spaces", () =>
   assert.equal(JSON.parse(h.stdout).decision, "block");
 });
 
+// ---------- ZFG Pro signing (optional) ----------
+
+import { signReceipt, apiBase, readSigned, writeSigned } from "../scripts/zfg-pro.mjs";
+
+const GOOD_KEY = "zfg_test_" + "a".repeat(12) + "_" + "b".repeat(48);
+
+function fakeFetch(handler) {
+  const calls = [];
+  const fn = async (url, init) => {
+    calls.push({ url, init });
+    const { status = 200, body = {} } = handler(url, init) || {};
+    return { ok: status >= 200 && status < 300, status, json: async () => body };
+  };
+  fn.calls = calls;
+  return fn;
+}
+
+test("Pro: no key means no network call and no signing", async () => {
+  const f = fakeFetch(() => ({}));
+  const r = await signReceipt({ receipt_sha256: "x", verdict: "GREEN" }, { env: {}, fetchImpl: f });
+  assert.equal(r.signed, false);
+  assert.equal(r.code, "NO_API_KEY");
+  assert.equal(f.calls.length, 0);
+});
+
+test("Pro: a malformed key is never sent", async () => {
+  const f = fakeFetch(() => ({}));
+  const r = await signReceipt({}, { env: { ZFG_API_KEY: "sk_live_123" }, fetchImpl: f });
+  assert.equal(r.code, "API_KEY_MALFORMED");
+  assert.equal(f.calls.length, 0);
+});
+
+test("Pro: sends the receipt with a bearer key to the ZFG endpoint", async () => {
+  const receipt = { receipt_sha256: "c".repeat(64), verdict: "GREEN" };
+  const envelope = { statement: { signature_id: "zfgs_1", subject: { receipt_sha256: receipt.receipt_sha256, verdict: "GREEN" } }, signature: "sig" };
+  const f = fakeFetch(() => ({ body: { envelope } }));
+  const r = await signReceipt(receipt, { env: { ZFG_API_KEY: GOOD_KEY }, fetchImpl: f });
+  assert.equal(r.signed, true);
+  assert.equal(f.calls[0].url, apiBase({}) + "/zfgProSign");
+  assert.equal(f.calls[0].init.headers.authorization, "Bearer " + GOOD_KEY);
+  assert.deepEqual(JSON.parse(f.calls[0].init.body).receipt, receipt);
+});
+
+test("Pro: a signature over a different receipt or verdict is rejected", async () => {
+  const receipt = { receipt_sha256: "c".repeat(64), verdict: "RED" };
+  const envelope = { statement: { subject: { receipt_sha256: receipt.receipt_sha256, verdict: "GREEN" } } };
+  const r = await signReceipt(receipt, { env: { ZFG_API_KEY: GOOD_KEY }, fetchImpl: fakeFetch(() => ({ body: { envelope } })) });
+  assert.equal(r.signed, false);
+  assert.equal(r.code, "SIGNED_SUBJECT_MISMATCH");
+});
+
+test("Pro: server refusals and network failures are reported, never treated as signed", async () => {
+  const refused = await signReceipt({ receipt_sha256: "c" }, { env: { ZFG_API_KEY: GOOD_KEY }, fetchImpl: fakeFetch(() => ({ status: 402, body: { code: "PLAN_REQUIRED", error: "Need Pro" } })) });
+  assert.deepEqual([refused.signed, refused.code], [false, "PLAN_REQUIRED"]);
+  const offline = await signReceipt({ receipt_sha256: "c" }, { env: { ZFG_API_KEY: GOOD_KEY }, fetchImpl: async () => { throw new Error("ENOTFOUND"); } });
+  assert.deepEqual([offline.signed, offline.code], [false, "NETWORK_ERROR"]);
+});
+
+test("Pro: the API address can only be overridden with https", () => {
+  assert.equal(apiBase({ ZFG_API_URL: "http://evil.example" }), apiBase({}));
+  assert.equal(apiBase({ ZFG_API_URL: "https://staging.example/fn/" }), "https://staging.example/fn");
+});
+
+test("Pro: a new run removes the old signature, so it can never describe new code", () => {
+  const dir = project({ ".zfg.json": config([{ name: "a", run: PASS }]) });
+  verify(dir);
+  writeSigned(dir, { statement: { signature_id: "old", subject: { receipt_sha256: "old" } } });
+  assert.ok(readSigned(dir));
+  verify(dir);
+  assert.equal(readSigned(dir), null);
+});
+
+test("Pro: --require-signed turns an unsigned GREEN into exit 3 (merge gate)", () => {
+  const dir = project({ ".zfg.json": config([{ name: "a", run: PASS }]) });
+  const r = spawnSync(process.execPath, [path.join(SCRIPTS, "zfg-verify.mjs"), "--cwd", dir, "--require-signed"], { encoding: "utf8", env: { ...process.env, ZFG_API_KEY: "" } });
+  assert.equal(r.status, 3);
+  const plain = spawnSync(process.execPath, [path.join(SCRIPTS, "zfg-verify.mjs"), "--cwd", dir], { encoding: "utf8", env: { ...process.env, ZFG_API_KEY: "" } });
+  assert.equal(plain.status, 0);
+});
+
+import { gateCheck } from "../scripts/zfg-gate-check.mjs";
+
+test("merge gate: fails without a signed receipt, without calling the service", async () => {
+  const dir = project({ ".zfg.json": config([{ name: "a", run: PASS }]) });
+  verify(dir);
+  const f = fakeFetch(() => ({ body: { pass: true } }));
+  assert.deepEqual(await gateCheck({ cwd: dir, sha: "a".repeat(40), fetchImpl: f }), { pass: false, code: "NO_SIGNED_RECEIPT" });
+  assert.equal(f.calls.length, 0);
+});
+
+test("merge gate: passes only when the ZFG service confirms", async () => {
+  const dir = project({ ".zfg.json": config([{ name: "a", run: PASS }]) });
+  verify(dir);
+  writeSigned(dir, { statement: { signature_id: "s" }, signature: "x" });
+  const yes = await gateCheck({ cwd: dir, sha: "a".repeat(40), fetchImpl: fakeFetch(() => ({ body: { pass: true, code: "GREEN_SIGNED" } })) });
+  assert.deepEqual(yes, { pass: true, code: "GREEN_SIGNED" });
+  const no = await gateCheck({ cwd: dir, sha: "a".repeat(40), fetchImpl: fakeFetch(() => ({ body: { pass: false, code: "COMMIT_MISMATCH" } })) });
+  assert.deepEqual(no, { pass: false, code: "COMMIT_MISMATCH" });
+  const err = await gateCheck({ cwd: dir, sha: "a".repeat(40), fetchImpl: fakeFetch(() => ({ status: 500, body: { pass: true } })) });
+  assert.equal(err.pass, false);
+});
+
 test("plugin ships under the ZFG Community License, not MIT, and keeps the v0.1.0 MIT carve-out", () => {
   const root = path.join(here, "..");
   const manifest = JSON.parse(fs.readFileSync(path.join(root, ".claude-plugin", "plugin.json"), "utf8"));
@@ -270,4 +372,17 @@ test("plugin ships under the ZFG Community License, not MIT, and keeps the v0.1.
   assert.match(license, /governed by the laws of the Province of Nova Scotia/);
   const market = JSON.parse(fs.readFileSync(path.join(root, "..", "..", ".claude-plugin", "marketplace.json"), "utf8"));
   assert.equal(market.plugins.find((p) => p.name === "zfg").version, manifest.version);
+});
+
+test("README discloses exactly when data leaves the machine (directory requirement)", () => {
+  const readme = fs.readFileSync(path.join(here, "..", "README.md"), "utf8");
+  assert.doesNotMatch(readme, /Nothing is sent anywhere/);
+  assert.match(readme, /nothing leaves your machine/i);
+  assert.match(readme, /ZFG_API_KEY/);
+  assert.match(readme, /Your source code is never sent/);
+  const manifest = JSON.parse(fs.readFileSync(path.join(here, "..", ".claude-plugin", "plugin.json"), "utf8"));
+  assert.equal(manifest.displayName, "Zero False Green");
+  assert.match(manifest.name, /^[a-z0-9-]{1,64}$/);
+  const words = readme.replace(/```[\s\S]*?```/g, " ").split(/\s+/).filter(Boolean).length;
+  assert.ok(words >= 40, "README needs at least 40 words outside code blocks");
 });

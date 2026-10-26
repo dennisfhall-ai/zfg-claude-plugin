@@ -7,6 +7,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { evidenceState, gitRoot } from "./zfg-lib.mjs";
+import { readSigned } from "./zfg-pro.mjs";
 
 const MEANING = {
   CURRENT_GREEN: "The latest checks passed on exactly this version of the code.",
@@ -19,6 +20,12 @@ const MEANING = {
   NO_REPO: "Not inside a git repository, so evidence cannot be bound to an exact version of the code.",
 };
 
+function signedFor(root, receipt) {
+  const env = receipt ? readSigned(root) : null;
+  const subj = env?.statement?.subject;
+  return subj && subj.receipt_sha256 === receipt.receipt_sha256 ? env.statement.signature_id : null;
+}
+
 export function status(cwd) {
   const root = gitRoot(cwd);
   if (!root) return { state: "NO_REPO", meaning: MEANING.NO_REPO };
@@ -29,6 +36,8 @@ export function status(cwd) {
     verdict: s.receipt?.verdict ?? null,
     finished_at: s.receipt?.finished_at ?? null,
     reasons: s.receipt?.reasons ?? [],
+    // Pro: is there a server signature for exactly this receipt? (Shown, never trusted for the verdict.)
+    signature_id: signedFor(root, s.receipt),
   };
 }
 
@@ -41,6 +50,7 @@ if (isMain) {
   else {
     process.stdout.write(`ZFG status: ${result.state}\n${result.meaning}\n`);
     if (result.finished_at) process.stdout.write(`Last run: ${result.finished_at} (verdict ${result.verdict})\n`);
+    if (result.signature_id) process.stdout.write(`ZFG Pro signature: ${result.signature_id}\n`);
     for (const r of result.reasons) process.stdout.write(`  - ${r}\n`);
   }
   process.exit(result.state === "CURRENT_GREEN" ? 0 : 1);

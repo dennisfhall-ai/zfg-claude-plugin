@@ -1,7 +1,8 @@
 {
   "name": "zfg",
-  "version": "0.2.0",
-  "description": "Zero False Green: Claude may only say work is passing, verified or ready when a fresh evidence receipt proves it for the exact code on disk.",
+  "displayName": "Zero False Green",
+  "version": "0.3.0",
+  "description": "Stops Claude from saying work is passing, verified or ready unless a fresh evidence receipt proves it for the exact code on disk.",
   "author": {
     "name": "DFH Software and Development Company"
   },
@@ -16,5 +17,5 @@
   ],
   "license": "LicenseRef-ZFG-Community-1.0",
   "icon": ".claude-plugin/icon.png",
-  "homepage": "https://github.com/dennisfhall-ai/zfg-claude-plugin"
+  "homepage": "https://zerofalsegreen.com"
 }
