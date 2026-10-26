@@ -14,6 +14,7 @@ import {
   RECEIPT_SCHEMA, TOOL_VERSION, VERDICT, ZFG_DIR,
   gitHead, gitRoot, sealReceipt, sha256, treeFingerprint,
 } from "./zfg-lib.mjs";
+import { apiKey, signReceipt, signedPath, writeSigned } from "./zfg-pro.mjs";
 
 const DEFAULT_TIMEOUT_MS = 15 * 60 * 1000;
 const TAIL_LINES = 40;
@@ -155,6 +156,8 @@ export function verify(cwd) {
   const json = JSON.stringify(receipt, null, 2) + "\n";
   fs.writeFileSync(path.join(dir, `${stamp}-${receipt.verdict}.json`), json);
   fs.writeFileSync(path.join(dir, "latest.json"), json);
+  // A signature belongs to one receipt; a new run always invalidates the old one.
+  fs.rmSync(signedPath(root), { force: true });
   return { receipt, verdict: decision.verdict, reasons: decision.reasons };
 }
 
@@ -173,6 +176,26 @@ function summary({ receipt, verdict, reasons }) {
   return out.join("\n");
 }
 
+// GitHub Actions context, recorded in the signature when --ci is passed.
+export function ciContext(env = process.env) {
+  if (env.GITHUB_ACTIONS !== "true") return { source: "local" };
+  const pr = /^refs\/pull\/(\d+)\//.exec(String(env.GITHUB_REF || ""));
+  return {
+    source: "github_actions",
+    repository: env.GITHUB_REPOSITORY || "",
+    ref: env.GITHUB_REF || "",
+    sha: env.GITHUB_SHA || "",
+    run_id: env.GITHUB_RUN_ID || "",
+    pull_request: pr ? Number(pr[1]) : null,
+  };
+}
+
+function signingLine(pro) {
+  if (!pro) return "";
+  if (pro.signed) return `ZFG Pro: signed (${pro.envelope.statement.signature_id})${pro.verify_url ? "  " + pro.verify_url : ""}`;
+  return `ZFG Pro: not signed (${pro.code}${pro.message ? ": " + pro.message : ""}). The local verdict above is unchanged.`;
+}
+
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   const argv = process.argv.slice(2);
@@ -183,6 +206,14 @@ if (isMain) {
   } catch (err) {
     result = { receipt: null, verdict: VERDICT.BLOCKED, reasons: [`Verification could not complete: ${err.message}`] };
   }
-  process.stdout.write((argv.includes("--json") ? JSON.stringify(result, null, 2) : summary(result)) + "\n");
-  process.exit(result.verdict === VERDICT.GREEN ? 0 : result.verdict === VERDICT.RED ? 1 : 2);
+  if (result.receipt && apiKey() && !argv.includes("--no-sign")) {
+    const root = gitRoot(cwd);
+    result.pro = await signReceipt(result.receipt, { context: argv.includes("--ci") ? ciContext() : { source: "local" } });
+    if (result.pro.signed && root) writeSigned(root, result.pro.envelope);
+  }
+  process.stdout.write((argv.includes("--json") ? JSON.stringify(result, null, 2) : [summary(result), signingLine(result.pro)].filter(Boolean).join("\n")) + "\n");
+  let code = result.verdict === VERDICT.GREEN ? 0 : result.verdict === VERDICT.RED ? 1 : 2;
+  // --require-signed (used by the merge gate): an unsigned GREEN is not enough.
+  if (code === 0 && argv.includes("--require-signed") && !result.pro?.signed) code = 3;
+  process.exit(code);
 }

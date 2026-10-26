@@ -1,0 +1,58 @@
+name: "ZFG merge gate"
+description: "Zero False Green Team: runs your checks in CI, gets a server-signed receipt, and fails unless it is a signed GREEN for this exact commit."
+author: "DFH Software and Development Company"
+branding:
+  icon: "shield"
+  color: "green"
+inputs:
+  api-key:
+    description: "Your ZFG Team API key. Store it as a repository secret, e.g. secrets.ZFG_API_KEY."
+    required: true
+  working-directory:
+    description: "Folder to verify (default: repository root)."
+    required: false
+    default: "."
+outputs:
+  verdict:
+    description: "GREEN, RED or BLOCKED as computed in CI."
+    value: ${{ steps.verify.outputs.verdict }}
+  signature-id:
+    description: "The ZFG signature id for this run, if signed."
+    value: ${{ steps.verify.outputs.signature_id }}
+runs:
+  using: "composite"
+  steps:
+    - name: Run ZFG verification in CI and sign the receipt
+      id: verify
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        ZFG_API_KEY: ${{ inputs.api-key }}
+        ZFG_SCRIPTS: ${{ github.action_path }}/../../plugins/zfg/scripts
+      run: |
+        set +e
+        node "$ZFG_SCRIPTS/zfg-verify.mjs" --ci --require-signed --json > "$RUNNER_TEMP/zfg-result.json"
+        code=$?
+        set -e
+        node -e '
+          const r = require(process.env.RUNNER_TEMP + "/zfg-result.json");
+          const fs = require("fs");
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, "verdict=" + r.verdict + "\n");
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, "signature_id=" + ((r.pro && r.pro.signed && r.pro.envelope.statement.signature_id) || "") + "\n");
+          const lines = ["## ZFG merge gate", "", "**Verdict:** " + r.verdict];
+          for (const c of (r.receipt && r.receipt.checks) || []) lines.push("- " + (c.exit_code === 0 && !c.timed_out ? "PASS" : "FAIL") + " `" + c.name + "`");
+          for (const x of r.reasons || []) lines.push("- " + x);
+          lines.push("", r.pro && r.pro.signed ? "**Signed:** " + r.pro.envelope.statement.signature_id + (r.pro.verify_url ? " ([verify](" + r.pro.verify_url + "))" : "") : "**Not signed:** " + ((r.pro && r.pro.code) || "NO_API_KEY"));
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
+        '
+        if [ "$code" -ne 0 ]; then
+          echo "::error title=ZFG merge gate::Not a signed GREEN (exit $code). See the job summary."
+          exit 1
+        fi
+    - name: Confirm with ZFG that the signature is valid for this commit
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        ZFG_SCRIPTS: ${{ github.action_path }}/../../plugins/zfg/scripts
+      run: |
+        node "$ZFG_SCRIPTS/zfg-gate-check.mjs" --sha "$(git rev-parse HEAD)"

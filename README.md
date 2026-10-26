@@ -9,10 +9,11 @@ With ZFG installed, Claude may only say work is passing, verified or ready when 
 ## Install
 
 ```text
-/plugin install zfg --marketplace dennisfhall-ai/zfg-claude-plugin
+/plugin marketplace add dennisfhall-ai/zfg-claude-plugin
+/plugin install zfg@dfh
 ```
 
-Requires Node.js 18 or later and a git repository. No accounts, keys or network access are needed — everything runs on your machine.
+Requires Node.js 18 or later and a git repository. The free plugin needs no account, key or network access: everything runs on your machine.
 
 ## What you get
 
@@ -46,6 +47,24 @@ ZFG detects common setups (`npm`/`pnpm`/`yarn` scripts `test`, `lint`, `typechec
 
 To turn the end-of-turn guard off for a project, add `"hook": "off"` to `.zfg.json`, or set `ZFG_HOOK=off`.
 
+## ZFG Pro (optional, paid)
+
+Set a `ZFG_API_KEY` from [zerofalsegreen.com](https://zerofalsegreen.com) and every `/zfg:verify` run also sends its receipt to ZFG to be signed. You get a public verification link for each receipt and, on Team and Business, a GitHub merge gate that blocks merging without a signed GREEN for that exact commit. If signing fails (offline, plan ended), the local verdict is unchanged. Without a key, the plugin never contacts any server.
+
+## GitHub merge gate (ZFG Team and Business)
+
+Add your ZFG API key as the repository secret `ZFG_API_KEY`, then add this step to a pull-request workflow. The job fails unless the checks pass in CI and ZFG signs a GREEN for that exact commit.
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+  with:
+    node-version: '20'
+- uses: dennisfhall-ai/zfg-claude-plugin/actions/merge-gate@v0.3.0
+  with:
+    api-key: ${{ secrets.ZFG_API_KEY }}
+```
+
 ## What ZFG does not claim
 
 - A receipt is **local, self-run evidence**: your checks passed on this code, on this machine. It is not independent certification, a security audit, or release approval.
@@ -60,7 +79,10 @@ Independent, signed release authority is the job of the full ZFG platform from D
 
 ## Privacy
 
-ZFG reads files in your repository to fingerprint them and stores receipts in `.zfg/` inside the project (ignored by git automatically). Nothing is sent anywhere.
+ZFG reads files in your repository to fingerprint them and stores receipts in `.zfg/` inside the project (ignored by git automatically).
+
+- **Free use (no `ZFG_API_KEY`):** nothing leaves your machine. The plugin makes no network requests.
+- **With `ZFG_API_KEY` set (ZFG Pro):** each verify run sends the receipt over HTTPS to ZFG's signing service (`https://base44.app/api/apps/6aa369c28300b99353dcdc0f/functions`, or `ZFG_API_URL` if you set it). The receipt contains file fingerprints (SHA-256 hashes, not file contents), check names, commands, exit codes and durations, the verdict, project name and git commit, the last lines of each check's output (used to confirm the seal, then discarded by the server), and in CI the repository, ref and run id. Your source code is never sent. See the [Privacy Policy](https://zerofalsegreen.com/privacy).
 
 ## License
 
